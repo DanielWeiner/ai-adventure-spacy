@@ -50,6 +50,7 @@ jobs:
         # push it to ECR so that it can
         # be deployed to ECS.
         docker buildx build \
+            --load \
             -t $ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG \
             --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$ECR_CACHE_TAG \
             --cache-to mode=max,image-manifest=true,type=registry,ref=$ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$ECR_CACHE_TAG \
