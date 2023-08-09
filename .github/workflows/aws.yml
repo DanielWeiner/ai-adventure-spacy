@@ -8,6 +8,7 @@ env:
   AWS_REGION:               us-east-1 
   ECR_REGISTRY_ALIAS:       b8d5e4z4
   ECR_REPOSITORY:           ai-adventure-spacy
+  ECR_CACHE_TAG:            cache
   CONTAINER_NAME:           ai-adventure-spacy
 
 permissions:
@@ -49,9 +50,9 @@ jobs:
         # push it to ECR so that it can
         # be deployed to ECS.
         docker buildx build \
-            --push -t $ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG \
-            --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:cache \
-            --cache-to mode=max,image-manifest=true,type=registry,ref=$ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:cache \
+            -t $ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG \
+            --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$ECR_CACHE_TAG \
+            --cache-to mode=max,image-manifest=true,type=registry,ref=$ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$ECR_CACHE_TAG \
             -f docker/Dockerfile .
         
         docker push $ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
