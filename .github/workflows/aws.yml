@@ -8,7 +8,7 @@ env:
   AWS_REGION:               us-east-1 
   ECR_REGISTRY_ALIAS:       b8d5e4z4
   ECR_REPOSITORY:           ai-adventure-spacy
-  ECR_CACHE_TAG:            cache
+  ECR_CACHE_TAG:            ai-adventure-spacy-cache
   CONTAINER_NAME:           ai-adventure-spacy
 
 permissions:
