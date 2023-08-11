@@ -1,4 +1,5 @@
 import spacy
+import resource
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 from dotenv import load_dotenv
@@ -21,8 +22,7 @@ headers = {
 class SpacyServer(ThreadingHTTPServer):
     def __init__(self, server_address, bind_and_activate: bool = True) -> None:
         print("Initializing spaCy")
-        self.nlp  = spacy.load("en_core_web_trf", exclude=[
-            "tok2vec",
+        self.nlp  = spacy.load("en_core_web_sm", exclude=[
             "textcat",
             "textcat_multilabel",
             "trainable_lemmatizer",
