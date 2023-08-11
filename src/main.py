@@ -21,7 +21,13 @@ headers = {
 class SpacyServer(ThreadingHTTPServer):
     def __init__(self, server_address, bind_and_activate: bool = True) -> None:
         print("Initializing spaCy")
-        self.nlp  = spacy.load("en_core_web_trf")
+        self.nlp  = spacy.load("en_core_web_trf", exclude=[
+            "tok2vec",
+            "textcat",
+            "textcat_multilabel",
+            "trainable_lemmatizer",
+            "sentencizer"
+        ])
         super().__init__(server_address, SpacyRequestHandler, bind_and_activate)
         
     def get_nlp(self) -> spacy.Language:
