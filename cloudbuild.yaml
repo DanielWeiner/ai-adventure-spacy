@@ -10,6 +10,7 @@ steps:
       - buildx
       - build
       - '--load'
+      - '--push'
       - '--cache-from'
       - >-
         type=registry,ref=$_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:ai-adventure-spacy-cache
@@ -23,12 +24,6 @@ steps:
       - '-f'
       - docker/Dockerfile
     id: Build
-  - name: gcr.io/cloud-builders/docker
-    args:
-      - push
-      - >-
-        $_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
-    id: Push
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     args:
       - run
@@ -49,13 +44,6 @@ images:
     $_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
 options:
   substitutionOption: ALLOW_LOOSE
-substitutions:
-  _TRIGGER_ID:      de389348-1a59-497f-86d9-fff71e00f1b2
-  _DEPLOY_REGION:   us-central1
-  _AR_HOSTNAME:     us-central1-docker.pkg.dev
-  _PLATFORM:        managed
-  _DOCKER_BUILDKIT: '1'
-  _SERVICE_NAME:    ai-adventure-spacy
 tags:
   - gcp-cloud-build-deploy-cloud-run
   - gcp-cloud-build-deploy-cloud-run-managed
