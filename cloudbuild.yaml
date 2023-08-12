@@ -9,7 +9,6 @@ steps:
     args:
       - buildx
       - build
-      - '--load'
       - '--push'
       - '--cache-from'
       - >-
