@@ -9,7 +9,7 @@ steps:
     args:
       - buildx
       - build
-      - '--push'
+      - '--load'
       - '--cache-from'
       - >-
         type=registry,ref=$_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:ai-adventure-spacy-cache
@@ -19,10 +19,16 @@ steps:
       - '-t'
       - >-
         $_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
-      - '.'
       - '-f'
       - docker/Dockerfile
+      - '.'
     id: Build
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - >-
+        $_AR_HOSTNAME/$PROJECT_ID/cloud-run-source-deploy/$REPO_NAME/$_SERVICE_NAME:$COMMIT_SHA
+    id: Push
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:slim'
     args:
       - run
