@@ -6,6 +6,7 @@ import os
 from spacy_parser import parse
 import signal
 import requests
+import json
 
 load_dotenv()
 
@@ -105,7 +106,8 @@ def get_service_url():
     url = f'https://{region}-run.googleapis.com/v2/projects/{project_number}/locations/{region}/services/{SERVICE_NAME}'
     print(url)
     resp = requests.get(url)
-    body = resp.json()
+    print(resp.text)
+    body = json.loads(resp.text)
     service_url = body["uri"]
     print(str(service_url))
     return str(service_url)
@@ -119,7 +121,7 @@ if __name__ == "__main__":
     webServer = SpacyServer((SPACY_SERVER_HOST, SPACY_SERVER_PORT))
     print("Server started http://%s:%s" % (SPACY_SERVER_HOST, SPACY_SERVER_PORT))
 
-    def stop_server(_=None,__=None):
+    def stop_server(*args,**kwargs):
         if (SPACY_SERVER_ENV == "prod"):
             invoke_service_url()
         print("Server stopped.")
