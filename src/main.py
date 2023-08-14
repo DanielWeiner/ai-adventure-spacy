@@ -1,16 +1,17 @@
 import spacy
-import resource
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 import os
 from spacy_parser import parse
 import signal
+import requests
 
 load_dotenv()
 
 SPACY_SERVER_HOST = os.getenv("SPACY_SERVER_HOST", "0.0.0.0")
 SPACY_SERVER_PORT = int(os.getenv("SPACY_SERVER_PORT", "80"))
+SPACY_SERVER_ENV = os.getenv("SPACY_SERVER_ENV", "dev")
 
 headers = {
     "Content-Type": "application/json; charset=utf-8",
@@ -89,7 +90,15 @@ if __name__ == "__main__":
     webServer = SpacyServer((SPACY_SERVER_HOST, SPACY_SERVER_PORT))
     print("Server started http://%s:%s" % (SPACY_SERVER_HOST, SPACY_SERVER_PORT))
 
-    def stop_server(a=None,b=None):
+    def stop_server(_=None,__=None):
+        if (SPACY_SERVER_ENV == "prod"):
+            url = "http://metadata.google.internal/computeMetadata/v1/instance/image"
+            headers={
+                "Metadata-Flavor": "Google"
+            }
+            resp = requests.get(url, headers=headers)
+            instance_info = resp.text
+            print(instance_info)
         print("Server stopped.")
         webServer.server_close()
 
