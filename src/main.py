@@ -95,7 +95,6 @@ def get_instance_metadata():
     }
     resp = requests.get(url, headers=headers)
     instance_info = resp.text
-    print(instance_info)
     parts = instance_info.split("/")
     project_number = parts[1]
     region = parts[3]
@@ -108,24 +107,23 @@ def get_service_url():
     request = run_v2.GetServiceRequest(name=url)
     response = client.get_service(request=request)
     service_url = response.uri
-    print(service_url)
     return service_url
 
-def invoke_service_url():
+def invoke_service():
     service_url = get_service_url()
-    print("Calling service url")
     requests.get(f'{service_url}/health')
         
 if __name__ == "__main__":
     webServer = SpacyServer((SPACY_SERVER_HOST, SPACY_SERVER_PORT))
-    print("Server started http://%s:%s" % (SPACY_SERVER_HOST, SPACY_SERVER_PORT))
+    print("Server started %s:%s." % (SPACY_SERVER_HOST, SPACY_SERVER_PORT))
 
-    def stop_server(*args,**kwargs):
-        if (SPACY_SERVER_ENV == "prod"):
-            invoke_service_url()
-        print("Server stopped.")
+    def stop_server(*_,**__):
         webServer.server_close()
-
+        print("Server stopped.")
+        if (SPACY_SERVER_ENV == "prod"):
+            print("Handling SIGTERM: restarting service.")
+            invoke_service()
+        
     signal.signal(signal.SIGTERM, stop_server)
 
     try:
