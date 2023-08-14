@@ -12,6 +12,7 @@ load_dotenv()
 SPACY_SERVER_HOST = os.getenv("SPACY_SERVER_HOST", "0.0.0.0")
 SPACY_SERVER_PORT = int(os.getenv("SPACY_SERVER_PORT", "80"))
 SPACY_SERVER_ENV = os.getenv("SPACY_SERVER_ENV", "dev")
+SERVICE_NAME = os.getenv("K_SERVICE", "")
 
 headers = {
     "Content-Type": "application/json; charset=utf-8",
@@ -85,6 +86,34 @@ class SpacyRequestHandler(BaseHTTPRequestHandler):
             response_body = "Not Found"
         
         self.wfile.write(bytes(response_body, "utf-8"))
+
+def get_instance_metadata():
+    url = "http://metadata.google.internal/computeMetadata/v1/instance/region"
+    headers={
+        "Metadata-Flavor": "Google"
+    }
+    resp = requests.get(url, headers=headers)
+    instance_info = resp.text
+    print(instance_info)
+    parts = instance_info.split("/")
+    project_number = parts[1]
+    region = parts[3]
+    return project_number, region
+
+def get_service_url():
+    project_number, region = get_instance_metadata()
+    url = f'https://{region}-run.googleapis.com/v2/projects/{project_number}/locations/{region}/services/{SERVICE_NAME}'
+    print(url)
+    resp = requests.get(url)
+    body = resp.json()
+    service_url = body["uri"]
+    print(str(service_url))
+    return str(service_url)
+
+def invoke_service_url():
+    service_url = get_service_url()
+    print("Calling service url")
+    requests.get(f'{service_url}/health')
         
 if __name__ == "__main__":
     webServer = SpacyServer((SPACY_SERVER_HOST, SPACY_SERVER_PORT))
@@ -92,13 +121,7 @@ if __name__ == "__main__":
 
     def stop_server(_=None,__=None):
         if (SPACY_SERVER_ENV == "prod"):
-            url = "http://metadata.google.internal/computeMetadata/v1/instance/image"
-            headers={
-                "Metadata-Flavor": "Google"
-            }
-            resp = requests.get(url, headers=headers)
-            instance_info = resp.text
-            print(instance_info)
+            invoke_service_url()
         print("Server stopped.")
         webServer.server_close()
 
