@@ -6,7 +6,7 @@ import os
 from spacy_parser import parse
 import signal
 import requests
-import json
+from google.cloud import run_v2
 
 load_dotenv()
 
@@ -103,14 +103,13 @@ def get_instance_metadata():
 
 def get_service_url():
     project_number, region = get_instance_metadata()
-    url = f'https://{region}-run.googleapis.com/v2/projects/{project_number}/locations/{region}/services/{SERVICE_NAME}'
-    print(url)
-    resp = requests.get(url)
-    print(resp.text)
-    body = json.loads(resp.text)
-    service_url = body["uri"]
-    print(str(service_url))
-    return str(service_url)
+    url = f'projects/{project_number}/locations/{region}/services/{SERVICE_NAME}'
+    client = run_v2.ServicesClient()
+    request = run_v2.GetServiceRequest(name=url)
+    response = client.get_service(request=request)
+    service_url = response.uri
+    print(service_url)
+    return service_url
 
 def invoke_service_url():
     service_url = get_service_url()
