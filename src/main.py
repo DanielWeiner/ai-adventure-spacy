@@ -28,10 +28,12 @@ headers = {
 nlp_lock = threading.Lock()
 shared_state : dict[str, spacy.Language] = {}
 def load_nlp(shared_state: dict[str, spacy.Language]):
-    print("Loading language model")
+    print("Loading language models.")
 
     nlp = spacy.load("en_core_web_trf")
     nlp_coref = spacy.load("en_coreference_web_trf", vocab=nlp.vocab)
+    
+    print("Language moels loaded.")
 
     with nlp_lock:
         shared_state["nlp"] = nlp
