@@ -131,12 +131,10 @@ def invoke_service():
 if __name__ == "__main__":
     nlp_thread = threading.Thread(target=load_nlp, args=(shared_state,))
     nlp_thread.start()
-
+    nlp_thread.join()
     webServer = ThreadingHTTPServer((SPACY_SERVER_HOST, SPACY_SERVER_PORT), SpacyRequestHandler)
     print("Server started %s:%s." % (SPACY_SERVER_HOST, SPACY_SERVER_PORT))
-
     def stop_server(*_):
-        nlp_thread.join()
         webServer.server_close()
         print("Server stopped.")
         if (SPACY_SERVER_ENV == "prod"):
