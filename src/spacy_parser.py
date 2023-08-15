@@ -1,8 +1,9 @@
 from spacy import Language
 import json
 
-def parse(nlp: Language, value: str) -> str:
+def parse(nlp: Language, nlp_coref: Language, value: str) -> str:
     doc = nlp(value)
+    doc = nlp_coref(doc)
     
     tokens = [{
             "index":            token.i,
@@ -36,14 +37,27 @@ def parse(nlp: Language, value: str) -> str:
     } for chunk in doc.noun_chunks]
 
     ents = [{
-        "text":   entity.text,
-        "id":     entity.id,
-        "ent_id": entity.ent_id,
-        "label":  entity.label_
+        "text":           entity.text,
+        "id":             entity.id,
+        "start":          entity.start,
+        "ent_id":         entity.ent_id,
+        "label":          entity.label_,
+        "root_text":      entity.root.text,
+        "root_dep":       entity.root.dep_,
+        "root_head_text": entity.root.head.text
     } for entity in doc.ents]
 
+    coref_clusters = [[{
+            "text":           span.text, 
+            "start":          span.start,
+            "root_text":      span.root.text,
+            "root_dep":       span.root.dep_,
+            "root_head_text": span.root.head.text
+        } for span in value] for (key, value) in doc.spans.items() if str(key).startswith("coref_clusters_")]
+
     return json.dumps({
-        "tokens":      tokens,
-        "noun_chunks": noun_chunks,
-        "entities":    ents
+        "tokens":         tokens,
+        "noun_chunks":    noun_chunks,
+        "entities":       ents,
+        "coref_clusters": coref_clusters
     })

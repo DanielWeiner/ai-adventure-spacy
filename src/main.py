@@ -3,10 +3,13 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from urllib.parse import urlparse
 from dotenv import load_dotenv
 import os
-from spacy_parser import parse
+import spacy_parser
 import signal
 import requests
 from google.cloud import run_v2
+import threading
+from time import sleep
+import importlib
 
 load_dotenv()
 
@@ -22,20 +25,29 @@ headers = {
     "Access-Control-Allow-Headers": "Content-Type"
 }
 
-class SpacyServer(ThreadingHTTPServer):
-    def __init__(self, server_address, bind_and_activate: bool = True) -> None:
-        print("Initializing spaCy")
-        self.nlp  = spacy.load("en_core_web_trf")
-        super().__init__(server_address, SpacyRequestHandler, bind_and_activate)
-        
-    def get_nlp(self) -> spacy.Language:
-        return self.nlp
+nlp_lock = threading.Lock()
+shared_state : dict[spacy.Language] = {}
+def load_nlp(shared_state: list[spacy.Language]):
+    print("Loading language model")
 
-class SpacyRequestHandler(BaseHTTPRequestHandler):
-    def __init__(self, request, client_address, server: SpacyServer) -> None:
-        self.nlp = server.get_nlp()
-        super().__init__(request, client_address, server)
-        
+    nlp = spacy.load("en_core_web_trf")
+    nlp_coref = spacy.load("en_coreference_web_trf", vocab=nlp.vocab)
+
+    with nlp_lock:
+        shared_state["nlp"] = nlp
+        shared_state["nlp_coref"] = nlp_coref
+
+def get_nlp():
+    while True:
+        with nlp_lock:
+            if "nlp" in shared_state and "nlp_coref" in shared_state:
+                return shared_state["nlp"], shared_state["nlp_coref"]
+        sleep(0.01)
+    
+nlp_thread = threading.Thread(target=load_nlp, args=(shared_state,))
+nlp_thread.start()
+
+class SpacyRequestHandler(BaseHTTPRequestHandler):        
     def send_headers(self) -> None:
         for key, value in headers.items():
             self.send_header(key, value)
@@ -82,7 +94,10 @@ class SpacyRequestHandler(BaseHTTPRequestHandler):
             if post_body is None:
                 response_body = "null"
             else:
-                response_body = parse(self.nlp, post_body)
+                nlp, nlp_coref = get_nlp()
+                if (SPACY_SERVER_ENV == "dev"):
+                    importlib.reload(spacy_parser)
+                response_body = spacy_parser.parse(nlp, nlp_coref, post_body)
         else:
             response_body = "Not Found"
         
@@ -114,10 +129,11 @@ def invoke_service():
     requests.get(f'{service_url}/health')
         
 if __name__ == "__main__":
-    webServer = SpacyServer((SPACY_SERVER_HOST, SPACY_SERVER_PORT))
+    webServer = ThreadingHTTPServer((SPACY_SERVER_HOST, SPACY_SERVER_PORT), SpacyRequestHandler)
     print("Server started %s:%s." % (SPACY_SERVER_HOST, SPACY_SERVER_PORT))
 
-    def stop_server(*_,**__):
+    def stop_server(*_):
+        nlp_thread.join()
         webServer.server_close()
         print("Server stopped.")
         if (SPACY_SERVER_ENV == "prod"):
