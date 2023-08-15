@@ -30,7 +30,8 @@ def parse(nlp: Language, nlp_coref: Language, value: str) -> str:
         } for token in doc]
     
     noun_chunks = [{
-        "text":           chunk.text, 
+        "text":           chunk.text,
+        "start":          chunk.start,
         "root_text":      chunk.root.text, 
         "root_dep":       chunk.root.dep_,
         "root_head_text": chunk.root.head.text
