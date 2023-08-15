@@ -27,6 +27,7 @@ headers = {
 
 nlp_lock = threading.Lock()
 shared_state : dict[str, spacy.Language] = {}
+
 def load_nlp(shared_state: dict[str, spacy.Language]):
     print("Loading language models.")
 
@@ -45,9 +46,6 @@ def get_nlp():
             if "nlp" in shared_state and "nlp_coref" in shared_state:
                 return shared_state["nlp"], shared_state["nlp_coref"]
         sleep(0.01)
-    
-nlp_thread = threading.Thread(target=load_nlp, args=(shared_state,))
-nlp_thread.start()
 
 class SpacyRequestHandler(BaseHTTPRequestHandler):        
     def send_headers(self) -> None:
@@ -131,6 +129,9 @@ def invoke_service():
     requests.get(f'{service_url}/health')
         
 if __name__ == "__main__":
+    nlp_thread = threading.Thread(target=load_nlp, args=(shared_state,))
+    nlp_thread.start()
+
     webServer = ThreadingHTTPServer((SPACY_SERVER_HOST, SPACY_SERVER_PORT), SpacyRequestHandler)
     print("Server started %s:%s." % (SPACY_SERVER_HOST, SPACY_SERVER_PORT))
 
