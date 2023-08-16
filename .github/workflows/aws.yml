@@ -47,13 +47,14 @@ jobs:
         # push it to ECR so that it can
         # be deployed to ECS.
         docker buildx build \
-            --push \
+            --pull \
             --platform linux/amd64 \
             -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
             --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:$ECR_CACHE_TAG \
             --cache-to mode=max,image-manifest=true,type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:$ECR_CACHE_TAG \
             -f docker/Dockerfile .
 
+        docker push $ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
     # - name: AWS Lambda Deploy
     #   uses: appleboy/lambda-action@v0.1.9
