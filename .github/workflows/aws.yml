@@ -5,11 +5,10 @@ on:
     branches: [ "aws-lambda-runtime" ]
 
 env:
-  AWS_REGION:         us-east-1 
-  ECR_REGISTRY_ALIAS: b8d5e4z4
-  ECR_REPOSITORY:     ai-adventure-spacy
-  ECR_CACHE_TAG:      ai-adventure-spacy-cache
-  FUNCTION_NAME:      ai-adventure-spacy
+  AWS_REGION:     us-east-1 
+  ECR_REPOSITORY: ai-adventure-spacy
+  ECR_CACHE_TAG:  ai-adventure-spacy-cache
+  FUNCTION_NAME:  ai-adventure-spacy
 
 permissions:
   contents: read
@@ -37,8 +36,6 @@ jobs:
     - name: Login to Amazon ECR
       id: login-ecr
       uses: aws-actions/amazon-ecr-login@v1
-      with:
-          registry-type: public
 
     - name: Build, tag, and push image to Amazon ECR
       id: build-image
@@ -52,12 +49,12 @@ jobs:
         docker buildx build \
             --push \
             --platform linux/amd64 \
-            -t $ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG \
-            --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$ECR_CACHE_TAG \
-            --cache-to mode=max,image-manifest=true,type=registry,ref=$ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$ECR_CACHE_TAG \
+            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+            --cache-from type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:$ECR_CACHE_TAG \
+            --cache-to mode=max,image-manifest=true,type=registry,ref=$ECR_REGISTRY/$ECR_REPOSITORY:$ECR_CACHE_TAG \
             -f docker/Dockerfile .
 
-        echo "image=$ECR_REGISTRY/$ECR_REGISTRY_ALIAS/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
+        echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
     # - name: AWS Lambda Deploy
     #   uses: appleboy/lambda-action@v0.1.9
     #   with:
