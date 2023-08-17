@@ -25,7 +25,7 @@ def register_extension():
         headers=headers
     )
     ext_id = response.headers['Lambda-Extension-Identifier']
-    
+
     print(f"[{LAMBDA_EXTENSION_NAME}] Extension registered.", flush=True)
 
     return ext_id
@@ -55,7 +55,7 @@ def process_events(ext_id):
         event = json.loads(response.text)
         if event['eventType'] == 'SHUTDOWN':
             print(f"[{LAMBDA_EXTENSION_NAME}] SHUTDOWN event received: {event['shutdownReason']}.", flush=True)
-            if event['shutdownReason'] == 'SPINDOWN':
+            if event['shutdownReason'] == 'spindown':
                 self_invoke()
             sys.exit(0)
 

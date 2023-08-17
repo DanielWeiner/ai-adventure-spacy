@@ -9,8 +9,9 @@ env:
   ECR_REPOSITORY:   ai-adventure-spacy
   ECR_CACHE_TAG:    ai-adventure-spacy-cache
   FUNCTION_NAME:    ai-adventure-spacy
-  FUNCTION_MEMORY:  8192
+  FUNCTION_MEMORY:  10240
   FUNCTION_STORAGE: 3008
+  FUNCTION_TIMEOUT: 900
 
 permissions:
   contents: read
@@ -85,6 +86,7 @@ jobs:
             --memory-size ${{ env.FUNCTION_MEMORY }} \
             --ephemeral-storage Size=${{ env.FUNCTION_STORAGE }} \
             --environment Variables=\{SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=/tmp/.transformers-cache\} \
+            --timeout ${{ env.FUNCTION_TIMEOUT }} \
             --no-cli-pager
 
         wait-for-lambda function-updated
@@ -94,3 +96,11 @@ jobs:
             --no-cli-pager
         
         wait-for-lambda published-version-active
+
+        aws lambda invoke \
+          --cli-binary-format raw-in-base64-out \
+          --function-name ${{ env.FUNCTION_NAME }} \
+          --invocation-type Event \
+          --cli-binary-format raw-in-base64-out \
+          --payload '{ "text": "" }' \
+          response.json
