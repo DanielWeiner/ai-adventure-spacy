@@ -62,12 +62,15 @@ jobs:
     - name: AWS Lambda Deploy
       id: lambda-deploy
       run: |
-        aws update-function-code \
+        aws lambda update-function-code \
             --function-name ${{ env.FUNCTION_NAME }} \
-            --image-uri ${{ steps.build-image.outputs.image }} \
-            --publish
+            --image-uri ${{ steps.build-image.outputs.image }}
         
         aws lambda update-function-configuration \
             --function-name ${{ env.FUNCTION_NAME }} \
             --memory-size ${{ env.FUNCTION_MEMORY }} \
-            --ephemeral-storage ${{ env.FUNCTION_STORAGE }}
+            --ephemeral-storage ${{ env.FUNCTION_STORAGE }} \
+            --environment SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=/tmp/.transformers-cache
+
+        aws lambda publish-version \
+            --function-name ${{ env.FUNCTION_NAME }}
