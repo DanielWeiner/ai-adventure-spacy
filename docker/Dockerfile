@@ -7,5 +7,5 @@ COPY src/ ${LAMBDA_TASK_ROOT}/src/
 COPY lambda_function.py ${LAMBDA_TASK_ROOT}
 COPY lambda-layer/ /opt/
 RUN chmod +x /opt/extensions/self-invoke-on-shutdown
-RUN chmod +x /opt/self-invoke-on-shutdown.py
+RUN chmod +x /opt/self-invoke-on-shutdown/extension.py
 CMD [ "lambda_function.handler" ]
