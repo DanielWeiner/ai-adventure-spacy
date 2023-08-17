@@ -5,10 +5,12 @@ on:
     branches: [ "aws-lambda-runtime" ]
 
 env:
-  AWS_REGION:     us-east-1 
-  ECR_REPOSITORY: ai-adventure-spacy
-  ECR_CACHE_TAG:  ai-adventure-spacy-cache
-  FUNCTION_NAME:  ai-adventure-spacy
+  AWS_REGION:       us-east-1 
+  ECR_REPOSITORY:   ai-adventure-spacy
+  ECR_CACHE_TAG:    ai-adventure-spacy-cache
+  FUNCTION_NAME:    ai-adventure-spacy
+  FUNCTION_MEMORY:  8192
+  FUNCTION_STORAGE: 3008
 
 permissions:
   contents: read
@@ -56,12 +58,16 @@ jobs:
 
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
-    # - name: AWS Lambda Deploy
-    #   uses: appleboy/lambda-action@v0.1.9
-    #   with:
-    #     aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-    #     aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-    #     aws_region: ${{ env.AWS_REGION }}
-    #     function_name: ${{ env.FUNCTION_NAME }}
-    #     image_uri: ${{ steps.build-image.outputs.image }}
-    #     environment: SPACY_SERVER_ENV=prod
+
+    - name: AWS Lambda Deploy
+      id: lambda-deploy
+      run: |
+        aws update-function-code \
+            --function-name ${{ env.FUNCTION_NAME }} \
+            --image-uri ${{ steps.build-image.outputs.image }} \
+            --publish
+        
+        aws lambda update-function-configuration \
+            --function-name ${{ env.FUNCTION_NAME }} \
+            --memory-size ${{ env.FUNCTION_MEMORY }} \
+            --ephemeral-storage ${{ env.FUNCTION_STORAGE }}

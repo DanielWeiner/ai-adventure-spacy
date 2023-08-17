@@ -5,4 +5,7 @@ COPY requirements.txt ${LAMBDA_TASK_ROOT}
 RUN --mount=type=cache,target=/root/.cache/pip pip install -U -r requirements.txt
 COPY src/ ${LAMBDA_TASK_ROOT}/src/
 COPY lambda_function.py ${LAMBDA_TASK_ROOT}
+COPY lambda-layer/ /opt/
+RUN chmod +x /opt/extensions/self-invoke-on-shutdown
+RUN chmod +x /opt/self-invoke-on-shutdown.py
 CMD [ "lambda_function.handler" ]
