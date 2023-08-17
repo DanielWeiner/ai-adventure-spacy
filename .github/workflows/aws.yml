@@ -62,10 +62,23 @@ jobs:
     - name: AWS Lambda Deploy
       id: lambda-deploy
       run: |
+        wait-for-lambda() {
+          local STATUS="$1"
+
+          while true; do
+            aws lambda wait $STATUS --function-name ${{ env.FUNCTION_NAME }}
+            if [ $? -eq 0 ]; then
+              break
+            fi
+          done
+        }
+
         aws lambda update-function-code \
             --function-name ${{ env.FUNCTION_NAME }} \
             --image-uri ${{ steps.build-image.outputs.image }} \
             --no-cli-pager
+
+        wait-for-lambda function-updated
         
         aws lambda update-function-configuration \
             --function-name ${{ env.FUNCTION_NAME }} \
@@ -74,6 +87,10 @@ jobs:
             --environment Variables=\{SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=/tmp/.transformers-cache\} \
             --no-cli-pager
 
+        wait-for-lambda function-updated
+
         aws lambda publish-version \
             --function-name ${{ env.FUNCTION_NAME }} \
             --no-cli-pager
+        
+        wait-for-lambda published-version-active
