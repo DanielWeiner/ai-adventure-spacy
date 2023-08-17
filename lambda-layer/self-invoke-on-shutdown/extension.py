@@ -37,9 +37,9 @@ def self_invoke():
         lambda_client.invoke(
             FunctionName=os.getenv("AWS_LAMBDA_FUNCTION_NAME"),
             InvocationType="Event",
-            Payload=bytes(json.dumps({
+            Payload=json.dumps({
                 "text": ""
-            }))
+            })
         )
 
 def process_events(ext_id):
