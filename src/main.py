@@ -4,6 +4,7 @@ import src.spacy_parser as spacy_parser
 from threading import Lock, Event
 import importlib
 import os
+import json
 
 class NlpState:
     def __init__(self) -> None:
@@ -36,13 +37,34 @@ def get_nlp():
         nlp : Language = nlp_state.nlp
         nlp_coref : Language = nlp_state.nlp_coref
         return nlp, nlp_coref
-
+    
 def handler(event, context):
     assert isinstance(event, dict)
-    text = event.get("text", "")
+    
+    is_request = "requestContext" in event
+    text = event.get("body", "") if is_request else event.get("text", "")
+
+    if is_request and event["requestContext"]["http"]["method"] != "POST":
+        return {
+            "statusCode": 404,
+            "body": "Not Found"
+        }
 
     nlp, nlp_coref = get_nlp()
     if (is_dev_environment() == "dev"):
         importlib.reload(spacy_parser)
 
-    return spacy_parser.parse(nlp, nlp_coref, text)
+    resp = spacy_parser.parse(nlp, nlp_coref, text)
+
+    if is_request:
+        resp = {
+            "statusCode": 201,
+            "headers": {
+                "Content-Type": "application/json; charset=utf-8",
+                "Access-Control-Allow-Origin": "*",
+                "Access-Control-Allow-Methods": "POST",
+                "Access-Control-Allow-Headers": "Content-Type"
+            },
+            "body": json.dumps(resp)
+        }
+    return resp
