@@ -12,7 +12,6 @@ env:
   FUNCTION_MEMORY:    8192
   FUNCTION_STORAGE:   512
   FUNCTION_TIMEOUT:   900
-  TRANSFORMERS_CACHE: /mnt/transformers-cache
   VPC_ID:             vpc-0203ecdde352e0bbc
   EFS_ACCESS_POINT:   transformers-cache
 
@@ -93,10 +92,10 @@ jobs:
             --function-name ${{ env.FUNCTION_NAME }} \
             --memory-size ${{ env.FUNCTION_MEMORY }} \
             --ephemeral-storage Size=${{ env.FUNCTION_STORAGE }} \
-            --environment Variables=\{SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=$TRANSFORMERS_CACHE\} \
+            --environment Variables=\{SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=/mnt/efs0/transformers-cache\} \
             --timeout ${{ env.FUNCTION_TIMEOUT }} \
             --vpc SubnetIds=$SUBNETS,SecurityGroupIds=$SECURITY_GROUP \
-            --file-system-configs Arn=$EFS_ACCESS_POINT,LocalMountPath=$TRANSFORMERS_CACHE \
+            --file-system-configs Arn=$EFS_ACCESS_POINT,LocalMountPath=/mnt/efs0 \
             --no-cli-pager
 
         wait-for-lambda function-updated
