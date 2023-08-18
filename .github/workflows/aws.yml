@@ -113,8 +113,9 @@ jobs:
 
         aws lambda invoke \
           --cli-binary-format raw-in-base64-out \
-          --function-name ${{ env.FUNCTION_NAME }}:latest \
+          --function-name ${{ env.FUNCTION_NAME }} \
+          --qualifier latest \
           --invocation-type Event \
           --cli-binary-format raw-in-base64-out \
-          --payload '{ "text": "" }' \
+          --payload '{"warmup":true}' \
           response.json
