@@ -6,7 +6,7 @@ def parse(nlp: Language, nlp_coref: Language, value: str) -> str:
     ents = []
     coref_clusters = []
     
-    if isinstance(value, str) and len(value) > 0:
+    if isinstance(value, str):
         doc = nlp(value)
         doc = nlp_coref(doc)
         
