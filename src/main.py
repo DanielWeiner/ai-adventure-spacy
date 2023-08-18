@@ -82,4 +82,4 @@ def handler(event, context):
 
     resp = spacy_parser.parse(get_nlp, text)
 
-    return http_response(resp) if is_request else resp
+    return http_response(201, resp) if is_request else resp
