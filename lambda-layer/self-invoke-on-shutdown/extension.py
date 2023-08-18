@@ -41,12 +41,12 @@ def register_extension():
 def self_invoke():
     if os.getenv("SPACY_SERVER_ENV", "dev") == "prod":
         lambda_client = boto3.client("lambda")
-        log("Getting latest function definition.")
-        latest_function = lambda_client.get_function(
+        log(f"Current version: {LAMBDA_FUNCTION_VERSION}. Getting latest function definition.")
+        latest_function = lambda_client.get_alias(
             FunctionName=LAMBDA_FUNCTION_NAME,
-            Qualifier='latest'
+            Name='latest'
         )
-        version = latest_function['Configuration']['Version']
+        version = latest_function['FunctionVersion']
         log(f"Latest function version: {version}. Current function version: {LAMBDA_FUNCTION_VERSION}.")
         if version == LAMBDA_FUNCTION_VERSION:
             log(f"Invoking lambda function version {version}.")
