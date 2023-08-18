@@ -5,13 +5,16 @@ on:
     branches: [ "main" ]
 
 env:
-  AWS_REGION:       us-east-1 
-  ECR_REPOSITORY:   ai-adventure-spacy
-  ECR_CACHE_TAG:    ai-adventure-spacy-cache
-  FUNCTION_NAME:    ai-adventure-spacy
-  FUNCTION_MEMORY:  10240
-  FUNCTION_STORAGE: 3008
-  FUNCTION_TIMEOUT: 900
+  AWS_REGION:         us-east-1 
+  ECR_REPOSITORY:     ai-adventure-spacy
+  ECR_CACHE_TAG:      ai-adventure-spacy-cache
+  FUNCTION_NAME:      ai-adventure-spacy
+  FUNCTION_MEMORY:    8192
+  FUNCTION_STORAGE:   128
+  FUNCTION_TIMEOUT:   900
+  TRANSFORMERS_CACHE: /mnt/transformers-cache
+  VPC_ID:             vpc-0203ecdde352e0bbc
+  EFS_ACCESS_POINT:   transformers-cache
 
 permissions:
   contents: read
@@ -73,11 +76,16 @@ jobs:
             fi
           done
         }
+        
+        SUBNETS=$(aws ec2 describe-subnets --filters Name=vpc-id,Values=${{ env.VPC_ID }} --no-cli-pager --no-paginate | jq -r '.Subnets[].SubnetId' | paste -sd ',' -)
+        SECURITY_GROUP=$(aws ec2 describe-security-groups --filters Name=vpc-id,Values=${{ env.VPC_ID }} Name=group-name,Values=default --no-cli-pager --no-paginate | jq -r '.SecurityGroups[0].GroupId')
+        EFS_ACCESS_POINT=$(aws efs describe-access-points --no-paginate --no-cli-pager --query "AccessPoints[?Name=='${{ env.EFS_ACCESS_POINT }}']" | jq -r '.[0].AccessPointArn')
 
         aws lambda update-function-code \
             --function-name ${{ env.FUNCTION_NAME }} \
             --image-uri ${{ steps.build-image.outputs.image }} \
-            --no-cli-pager
+            --no-cli-pager \
+            --no-paginate
 
         wait-for-lambda function-updated
         
@@ -85,21 +93,28 @@ jobs:
             --function-name ${{ env.FUNCTION_NAME }} \
             --memory-size ${{ env.FUNCTION_MEMORY }} \
             --ephemeral-storage Size=${{ env.FUNCTION_STORAGE }} \
-            --environment Variables=\{SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=/tmp/.transformers-cache\} \
+            --environment Variables=\{SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=$TRANSFORMERS_CACHE\} \
             --timeout ${{ env.FUNCTION_TIMEOUT }} \
+            --vpc SubnetIds=$SUBNETS,SecurityGroupIds=$SECURITY_GROUP \
+            --file-system-configs Arn=$EFS_ACCESS_POINT,LocalMountPath=$TRANSFORMERS_CACHE \
             --no-cli-pager
 
         wait-for-lambda function-updated
 
-        aws lambda publish-version \
-            --function-name ${{ env.FUNCTION_NAME }} \
-            --no-cli-pager
+        LAMBDA_FUNCTION_VERSION="$(aws lambda publish-version --function-name ${{ env.FUNCTION_NAME }} --no-cli-pager | jq -r '.Version')"
         
         wait-for-lambda published-version-active
 
+        aws lambda update-alias \
+          --function-name ${{ env.FUNCTION_NAME }} \
+          --function-version $LAMBDA_FUNCTION_VERSION \
+          --name latest
+        
+        wait-for-lambda function-updated
+
         aws lambda invoke \
           --cli-binary-format raw-in-base64-out \
-          --function-name ${{ env.FUNCTION_NAME }} \
+          --function-name ${{ env.FUNCTION_NAME }}:latest \
           --invocation-type Event \
           --cli-binary-format raw-in-base64-out \
           --payload '{ "text": "" }' \

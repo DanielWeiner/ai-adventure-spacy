@@ -6,6 +6,13 @@ import importlib
 import os
 import json
 
+request_headers = {
+    "Content-Type": "application/json; charset=utf-8",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Methods": "POST",
+    "Access-Control-Allow-Headers": "Content-Type"
+}
+
 class NlpState:
     def __init__(self) -> None:
         self.nlp : Optional[Language] = None
@@ -38,33 +45,41 @@ def get_nlp():
         nlp_coref : Language = nlp_state.nlp_coref
         return nlp, nlp_coref
     
+def http_response(status: int, content):
+    return {
+        "statusCode": status,
+        "headers":    request_headers,
+        "body":       json.dumps(content)
+    }
+
 def handler(event, context):
     assert isinstance(event, dict)
-    
+
     is_request = "requestContext" in event
     text = event.get("body", "") if is_request else event.get("text", "")
 
     if is_request and event["requestContext"]["http"]["method"] != "POST":
         return {
             "statusCode": 404,
-            "body": "Not Found"
+            "headers": request_headers,
+            "body": json.dumps("Not Found")
         }
+    
+    if event.get("warmup") == True:
+        nlp, nlp_coref = get_nlp()
+        nlp_coref(nlp(""))
 
-    nlp, nlp_coref = get_nlp()
+        if is_request:
+            return {
+                "statusCode": 200,
+                "body": json.dumps("OK")
+            }
+        else:
+            return "OK"
+        
     if (is_dev_environment() == "dev"):
         importlib.reload(spacy_parser)
 
-    resp = spacy_parser.parse(nlp, nlp_coref, text)
+    resp = spacy_parser.parse(get_nlp, text)
 
-    if is_request:
-        resp = {
-            "statusCode": 201,
-            "headers": {
-                "Content-Type": "application/json; charset=utf-8",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Methods": "POST",
-                "Access-Control-Allow-Headers": "Content-Type"
-            },
-            "body": json.dumps(resp)
-        }
-    return resp
+    return http_response(resp) if is_request else resp
