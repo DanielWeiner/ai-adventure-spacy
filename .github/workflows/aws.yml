@@ -72,7 +72,7 @@ jobs:
             --no-paginate
       
     - name: Wait for code update
-      uses: ./.github/workflows/lambda-wait.yml
+      uses: ./.github/actions/lambda-wait
       with:
         function-name: ${{ env.FUNCTION_NAME }}
         lambda-status: function-updated
@@ -94,7 +94,7 @@ jobs:
             --no-cli-pager
 
     - name: Wait for config update
-      uses: ./.github/workflows/lambda-wait.yml
+      uses: ./.github/actions/lambda-wait
       with:
         function-name: ${{ env.FUNCTION_NAME }}
         lambda-status: function-updated
@@ -106,7 +106,7 @@ jobs:
         echo "function-version=$LAMBDA_FUNCTION_VERSION" >> $GITHUB_OUTPUT
 
     - name: Wait for published
-      uses: ./.github/workflows/lambda-wait.yml
+      uses: ./.github/actions/lambda-wait
       with:
         function-name: ${{ env.FUNCTION_NAME }}
         lambda-status: published-version-active
@@ -119,7 +119,7 @@ jobs:
           --name latest
         
     - name: Wait for alias update
-      uses: ./.github/workflows/lambda-wait.yml
+      uses: ./.github/actions/lambda-wait
       with:
         function-name: ${{ env.FUNCTION_NAME }}
         lambda-status: function-updated
