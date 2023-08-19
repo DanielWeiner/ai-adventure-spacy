@@ -4,16 +4,13 @@ inputs:
   lambda-status:
     required: true
     type: string
-  function-name:
-    required: true
-    type: string
 
 runs:
   using: "composite"
   steps:        
     - shell: bash
       run: |
-        while ! (aws lambda wait ${{ inputs.lambda-status }} --function-name ${{ inputs.function-name }}); do
+        while ! (aws lambda wait ${{ inputs.lambda-status }} --function-name ${{ env.FUNCTION_NAME }}); do
           :
         done
     

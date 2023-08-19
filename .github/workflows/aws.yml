@@ -62,7 +62,7 @@ jobs:
         docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
-    - name: AWS Lambda Deploy
+    - name: Update Lambda image
       id: lambda-deploy
       run: |
         aws lambda update-function-code \
@@ -74,7 +74,6 @@ jobs:
     - name: Wait for code update
       uses: ./.github/actions/lambda-wait
       with:
-        function-name: ${{ env.FUNCTION_NAME }}
         lambda-status: function-updated
 
     - name: Update Lambda configuration
@@ -96,7 +95,6 @@ jobs:
     - name: Wait for config update
       uses: ./.github/actions/lambda-wait
       with:
-        function-name: ${{ env.FUNCTION_NAME }}
         lambda-status: function-updated
 
     - name: Publish Function
@@ -108,7 +106,6 @@ jobs:
     - name: Wait for published
       uses: ./.github/actions/lambda-wait
       with:
-        function-name: ${{ env.FUNCTION_NAME }}
         lambda-status: published-version-active
     
     - name: Update latest alias
@@ -121,7 +118,6 @@ jobs:
     - name: Wait for alias update
       uses: ./.github/actions/lambda-wait
       with:
-        function-name: ${{ env.FUNCTION_NAME }}
         lambda-status: function-updated
 
     - name: Invoke Lambda
