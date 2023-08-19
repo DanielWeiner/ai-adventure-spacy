@@ -1,0 +1,34 @@
+name: Deploy to Amazon ECS
+
+on:
+  workflow_call:
+    inputs:
+      lambda-status:
+        required: true
+        type: string
+      function-name:
+        required: true
+        type: string
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  lambda-wait:
+    name: Wait for Lambda Status
+    runs-on: ubuntu-latest
+    environment: production
+
+    steps:
+      - name: Configure AWS credentials
+        id: configure-creds
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Wait for Lambda
+        id: wait
+        run: |
+          while ! (aws lambda wait ${{ inputs.lambda-status }} --function-name ${{ inputs.function-name }}); do
+            :
+          done

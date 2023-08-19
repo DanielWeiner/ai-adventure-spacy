@@ -1,8 +1,10 @@
-FROM public.ecr.aws/lambda/python:3.11
+FROM public.ecr.aws/lambda/python:3.11 AS deps
 ENV $LAMBDA_TASK_ROOT=/var/task
 RUN --mount=type=cache,target=/root/.cache/pip pip install -U pip setuptools wheel
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 RUN --mount=type=cache,target=/root/.cache/pip pip install -U -r requirements.txt
+
+FROM deps
 COPY src/ ${LAMBDA_TASK_ROOT}/src/
 COPY lambda_function.py ${LAMBDA_TASK_ROOT}
 COPY lambda-layer/ /opt/
