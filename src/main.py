@@ -6,6 +6,8 @@ import importlib
 import os
 import json
 
+SPACY_LATEST_VERSION_FILE = os.getenv("SPACY_LATEST_VERSION_FILE", "/dev/null")
+
 request_headers = {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
@@ -66,6 +68,10 @@ def handler(event, context):
         }
     
     if event.get("warmup") == True:
+        if event.get("new_version") is not None:
+            with open(SPACY_LATEST_VERSION_FILE, "w") as file:
+                file.write(str(event["new_version"]))
+
         nlp, nlp_coref = get_nlp()
         nlp_coref(nlp(""))
 

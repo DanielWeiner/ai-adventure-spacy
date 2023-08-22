@@ -128,5 +128,5 @@ jobs:
           --qualifier latest \
           --invocation-type Event \
           --cli-binary-format raw-in-base64-out \
-          --payload '{"warmup":true}' \
+          --payload '{"warmup":true,"new_version":${{ steps.publish-function.outputs.function-version }}}' \
           response.json
