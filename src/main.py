@@ -70,6 +70,7 @@ def handler(event, context):
     if event.get("warmup") == True:
         if event.get("new_version") is not None:
             with open(SPACY_LATEST_VERSION_FILE, "w") as file:
+                print(f"Writing {event['new_version']} to {SPACY_LATEST_VERSION_FILE}")
                 file.write(str(event["new_version"]))
 
         nlp, nlp_coref = get_nlp()

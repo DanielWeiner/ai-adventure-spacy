@@ -5,15 +5,15 @@ on:
     branches: [ "main" ]
 
 env:
-  AWS_REGION:         us-east-1 
-  ECR_REPOSITORY:     ai-adventure-spacy
-  ECR_CACHE_TAG:      ai-adventure-spacy-cache
-  FUNCTION_NAME:      ai-adventure-spacy
-  FUNCTION_MEMORY:    5120
-  FUNCTION_STORAGE:   512
-  FUNCTION_TIMEOUT:   900
-  VPC_ID:             vpc-0203ecdde352e0bbc
-  EFS_ACCESS_POINT:   transformers-cache
+  AWS_REGION:       us-east-1 
+  ECR_REPOSITORY:   ai-adventure-spacy
+  ECR_CACHE_TAG:    ai-adventure-spacy-cache
+  FUNCTION_NAME:    ai-adventure-spacy
+  FUNCTION_MEMORY:  5120
+  FUNCTION_STORAGE: 512
+  FUNCTION_TIMEOUT: 900
+  VPC_ID:           vpc-0203ecdde352e0bbc
+  EFS_ACCESS_POINT: transformers-cache
 
 permissions:
   contents: read
@@ -86,7 +86,7 @@ jobs:
             --function-name ${{ env.FUNCTION_NAME }} \
             --memory-size ${{ env.FUNCTION_MEMORY }} \
             --ephemeral-storage Size=${{ env.FUNCTION_STORAGE }} \
-            --environment Variables=\{SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=/mnt/efs0/transformers-cache\} \
+            --environment Variables=\{SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=/mnt/efs0/transformers-cache,SPACY_LATEST_VERSION_FILE=/mnt/efs0/latest-version\} \
             --timeout ${{ env.FUNCTION_TIMEOUT }} \
             --vpc SubnetIds=$SUBNETS,SecurityGroupIds=$SECURITY_GROUP \
             --file-system-configs Arn=$EFS_ACCESS_POINT,LocalMountPath=/mnt/efs0 \
