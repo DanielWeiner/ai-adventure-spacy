@@ -9,10 +9,7 @@ import json
 SPACY_LATEST_VERSION_FILE = os.getenv("SPACY_LATEST_VERSION_FILE", "/dev/null")
 
 request_headers = {
-    "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Origin": "*",
-    "Access-Control-Allow-Methods": "POST",
-    "Access-Control-Allow-Headers": "Content-Type"
+    "Content-Type": "application/json; charset=utf-8"
 }
 
 class NlpState:
