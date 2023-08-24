@@ -1,8 +1,7 @@
 from typing import Optional
 from spacy import Language, load as spacy_load
 import src.spacy_parser as spacy_parser
-from threading import Lock, Event
-import importlib
+from threading import Lock, Event, Thread
 import os
 import json
 
@@ -21,28 +20,51 @@ class NlpState:
 
 nlp_state = NlpState()
 
-def is_dev_environment():
-    return os.getenv("SPACY_SERVER_ENV", "prod") == "dev"
+def load_base_nlp():
+    print("Loading base language model.")
+
+    nlp = spacy_load("en_core_web_trf")
+
+    with nlp_state.lock:
+        nlp_state.nlp = nlp
+
+def load_coref_nlp():
+    print("Loading coreference model.")
+
+    nlp_coref = spacy_load("en_coreference_web_trf")
+
+    nlp_coref.replace_listeners("transformer", "coref", ["model.tok2vec"])
+    nlp_coref.replace_listeners("transformer", "span_resolver", ["model.tok2vec"])
+
+    with nlp_state.lock:
+        nlp_state.nlp_coref = nlp_coref
 
 def load_nlp():
     print("Loading language models.")
 
-    nlp = spacy_load("en_core_web_trf")
-    nlp_coref = spacy_load("en_coreference_web_trf", vocab=nlp.vocab)
+    base_thread = Thread(target=load_base_nlp)
+    coref_thread = Thread(target=load_coref_nlp)
+
+    base_thread.start()
+    coref_thread.start()
+    base_thread.join()
+    coref_thread.join()
+
+    with nlp_state.lock:
+        nlp_state.nlp.add_pipe("coref", source=nlp_state.nlp_coref)
+        nlp_state.nlp.add_pipe("span_resolver", source=nlp_state.nlp_coref)
 
     print("Language models loaded.")
 
     with nlp_state.lock:
-        nlp_state.nlp = nlp
-        nlp_state.nlp_coref = nlp_coref
+        nlp_state.nlp_coref = None
         nlp_state.event.set()
-
+        
 def get_nlp():
     nlp_state.event.wait()
     with nlp_state.lock:
         nlp : Language = nlp_state.nlp
-        nlp_coref : Language = nlp_state.nlp_coref
-        return nlp, nlp_coref
+        return nlp
     
 def http_response(status: int, content):
     return {
@@ -58,11 +80,7 @@ def handler(event, context):
     text = event.get("body", "") if is_request else event.get("text", "")
 
     if is_request and event["requestContext"]["http"]["method"] != "POST":
-        return {
-            "statusCode": 404,
-            "headers": request_headers,
-            "body": json.dumps("Not Found")
-        }
+        return http_response(404, "Not Found")
     
     if event.get("warmup") == True:
         if event.get("new_version") is not None:
@@ -70,20 +88,10 @@ def handler(event, context):
                 print(f"Writing {event['new_version']} to {SPACY_LATEST_VERSION_FILE}")
                 file.write(str(event["new_version"]))
 
-        nlp, nlp_coref = get_nlp()
-        nlp_coref(nlp(""))
+        nlp = get_nlp()
+        nlp("")
 
-        if is_request:
-            return {
-                "statusCode": 200,
-                "body": json.dumps("OK")
-            }
-        else:
-            return "OK"
-        
-    if (is_dev_environment() == "dev"):
-        importlib.reload(spacy_parser)
+        return "OK"
 
     resp = spacy_parser.parse(get_nlp, text)
-
     return http_response(201, resp) if is_request else resp

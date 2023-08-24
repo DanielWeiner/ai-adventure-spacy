@@ -13,23 +13,23 @@ class ParseResults(FixedDict):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(parse_result_defaults.keys(), *args, **kwargs)
 
-def parse(get_nlp: Callable[[], tuple[Language, Language]], value: str):
+def parse(get_nlp: Callable[[], Language], value: str):
     parse_results = ParseResults(parse_result_defaults)
     
     if not isinstance(value, str) or len(value) == 0:
         return parse_results
     
-    nlp, nlp_coref = get_nlp()
+    nlp = get_nlp()
     doc = nlp(value)
-    doc = nlp_coref(doc)
     
     tokens = [{
         "index":            token.i,
+        "char_index":       token.idx,
         "text":             token.text,
         "lemma":            token.lemma_, 
         "pos":              token.pos_, 
-        "tag":              token.tag_, 
-        "dep":              token.dep_, 
+        "tag":              token.tag_,
+        "dep":              token.dep_,
         "is_alpha":         token.is_alpha,
         "is_stop":          token.is_stop,
         "is_sent_start":    token.is_sent_start,
@@ -37,14 +37,12 @@ def parse(get_nlp: Callable[[], tuple[Language, Language]], value: str):
         "ent_type":         token.ent_type_,
         "ent_iob":          token.ent_iob_,
         "head_index":       token.head.i,
-        "head_text":        token.head.text,
         "left_edge_index":  token.left_edge.i,
-        "left_edge_text":   token.left_edge.text,
         "right_edge_index": token.right_edge.i,
-        "right_edge_text":  token.right_edge.text,
         "norm":             token.norm_,
         "ent_kb":           token.ent_kb_id_,
-        "morph":            str(token.morph)
+        "morph":            str(token.morph),
+        "whitespace":       token.whitespace_
     } for token in doc]
     
     noun_chunks = [{

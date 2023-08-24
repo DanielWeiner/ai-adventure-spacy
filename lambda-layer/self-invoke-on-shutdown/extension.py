@@ -24,8 +24,6 @@ def log(output: str):
     }), flush=True)
 
 def register_extension():
-    log("Registering extension.")
-
     response = requests.post(
         url=REGISTER_URL,
         headers={
@@ -38,9 +36,6 @@ def register_extension():
         },
     )
     ext_id = response.headers['Lambda-Extension-Identifier']
-
-    log("Extension registered.")
-
     return ext_id
 
 def self_invoke():
@@ -51,7 +46,6 @@ def self_invoke():
         with open(SPACY_LATEST_VERSION_FILE, "r") as file:
             latest_version = file.read().strip()
             if (LAMBDA_FUNCTION_VERSION != latest_version):
-                log(f"Version mismatch: {latest_version}")
                 return
         log("self-invoke")
 
@@ -66,7 +60,6 @@ def process_events(ext_id):
         )
         event = json.loads(response.text)
         if event['eventType'] == 'SHUTDOWN':
-            log(f"SHUTDOWN event received: {event['shutdownReason']}.")
             if event['shutdownReason'] == 'spindown':
                 self_invoke()
             sys.exit(0)
