@@ -9,7 +9,7 @@ env:
   ECR_REPOSITORY:   ai-adventure-spacy
   ECR_CACHE_TAG:    ai-adventure-spacy-cache
   FUNCTION_NAME:    ai-adventure-spacy
-  FUNCTION_MEMORY:  5120
+  FUNCTION_MEMORY:  8192
   FUNCTION_STORAGE: 512
   FUNCTION_TIMEOUT: 900
   VPC_ID:           vpc-0203ecdde352e0bbc
