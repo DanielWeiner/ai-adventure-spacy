@@ -53,6 +53,7 @@ def load_nlp():
     with nlp_state.lock:
         nlp_state.nlp.add_pipe("coref", source=nlp_state.nlp_coref)
         nlp_state.nlp.add_pipe("span_resolver", source=nlp_state.nlp_coref)
+        nlp_state.nlp.add_pipe("span_cleaner", source=nlp_state.nlp_coref)
 
     print("Language models loaded.")
 
