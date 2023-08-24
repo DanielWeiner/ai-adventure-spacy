@@ -90,7 +90,7 @@ def handler(event, context):
                 file.write(str(event["new_version"]))
 
         nlp = get_nlp()
-        nlp("")
+        nlp(" ")
 
         return "OK"
 
