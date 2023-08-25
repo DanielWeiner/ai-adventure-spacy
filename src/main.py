@@ -51,8 +51,9 @@ def http_response(status: int, content):
         "body":       json.dumps(content)
     }
 
-with ThreadPoolExecutor(max_workers=1) as executor:
-    nlp_future = executor.submit(load_nlp)
+executor = ThreadPoolExecutor(max_workers=1)
+nlp_future = executor.submit(load_nlp)
+executor.shutdown(wait=False)
 
 def handler(event, context):
     assert isinstance(event, dict)
