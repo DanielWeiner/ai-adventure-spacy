@@ -71,7 +71,7 @@ def handler(event, context):
 
         nlp = nlp_future.result()
         nlp(" ")
-        return
+        return ""
     
     resp = spacy_parser.parse(nlp_future, text)
     return http_response(201, resp) if is_request else resp
