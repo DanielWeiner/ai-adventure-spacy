@@ -1,4 +1,4 @@
-from typing import Callable
+from concurrent.futures import Future
 from src.fixed_dict import FixedDict
 from spacy import Language
 
@@ -13,13 +13,13 @@ class ParseResults(FixedDict):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(parse_result_defaults.keys(), *args, **kwargs)
 
-def parse(get_nlp: Callable[[], Language], value: str):
+def parse(nlp_future: Future[Language], value: str):
     parse_results = ParseResults(parse_result_defaults)
     
     if not isinstance(value, str) or len(value) == 0:
         return parse_results
     
-    nlp = get_nlp()
+    nlp = nlp_future.result()
     doc = nlp(value)
     
     tokens = [{
