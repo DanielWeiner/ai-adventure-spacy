@@ -3,6 +3,7 @@ from spacy import load as spacy_load
 import src.spacy_parser as spacy_parser
 import os
 import json
+import amrlib
 
 SPACY_LATEST_VERSION_FILE = os.getenv("SPACY_LATEST_VERSION_FILE", "/dev/null")
 
@@ -30,11 +31,22 @@ def load_coref_nlp():
 
     return nlp_coref
 
+def load_amr():
+    print("Loading AMR.")
+    
+    amrlib.load_stog_model("amrlib/data/model_stog", device="cpu")
+    amrlib.setup_spacy_extension()
+
+    print("AMR Loaded.")
+
 def load_nlp():
-    with ThreadPoolExecutor(max_workers=2) as executor:
+    with ThreadPoolExecutor(max_workers=3) as executor:
         base_nlp_future = executor.submit(load_base_nlp)
         coref_nlp_future = executor.submit(load_coref_nlp)
+        executor.submit(load_amr)
 
+    print("All models loaded.")
+    
     nlp = base_nlp_future.result()
     nlp_coref = coref_nlp_future.result()
 

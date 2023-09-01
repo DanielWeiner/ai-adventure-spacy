@@ -6,7 +6,8 @@ parse_result_defaults = {
     "tokens":         [],
     "noun_chunks":    [],
     "entities":       [],
-    "coref_clusters": []
+    "coref_clusters": [],
+    "amr_graphs":     []
 }
 
 class ParseResults(FixedDict):
@@ -21,6 +22,8 @@ def parse(nlp_future: Future[Language], value: str):
     
     nlp = nlp_future.result()
     doc = nlp(value)
+
+    graphs = doc._.to_amr()
     
     tokens = [{
         "index":            token.i,
@@ -76,7 +79,8 @@ def parse(nlp_future: Future[Language], value: str):
         "tokens":         tokens,
         "noun_chunks":    noun_chunks,
         "entities":       ents,
-        "coref_clusters": coref_clusters
+        "coref_clusters": coref_clusters,
+        "amr_graphs":     graphs
     })
 
     return parse_results
