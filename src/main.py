@@ -43,12 +43,13 @@ def load_nlp():
     with ThreadPoolExecutor(max_workers=3) as executor:
         base_nlp_future = executor.submit(load_base_nlp)
         coref_nlp_future = executor.submit(load_coref_nlp)
-        executor.submit(load_amr)
+        amr_future = executor.submit(load_amr)
 
-    print("All models loaded.")
-    
     nlp = base_nlp_future.result()
     nlp_coref = coref_nlp_future.result()
+    amr_future.result()
+
+    print("All models loaded.")
 
     nlp.add_pipe("coref", source=nlp_coref)
     nlp.add_pipe("span_resolver", source=nlp_coref)
