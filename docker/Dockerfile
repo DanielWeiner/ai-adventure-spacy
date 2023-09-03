@@ -17,13 +17,13 @@ RUN --mount=type=cache,target=/root/.cache/pip pip install -U pip setuptools whe
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 RUN --mount=type=cache,target=/root/.cache/pip pip install -U -r requirements.txt
 
+FROM deps
+ENV TRANSFORMERS_CACHE=/root/.cache/huggingface/hub
 # preload facebook/bart-large (avoids doing it at runtime and writing to disk)
 RUN python -c "import huggingface_hub; huggingface_hub.snapshot_download('facebook/bart-large', allow_patterns=['*.txt', '*.json'])"
 
 # update transformers cache (avoids doing it at runtime and writing to disk)
 RUN python -c "from transformers.utils.hub import move_cache; move_cache()"
-
-FROM deps
 ENV TRANSFORMERS_OFFLINE=1
 COPY src/ ${LAMBDA_TASK_ROOT}/src/
 COPY lambda_function.py ${LAMBDA_TASK_ROOT}
