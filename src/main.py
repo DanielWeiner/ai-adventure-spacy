@@ -71,7 +71,6 @@ executor.shutdown(wait=False)
 def handler(event, context):
     assert isinstance(event, dict)
 
-    print(f"User: {os.getlogin()}")
     print(f"User home: {os.path.expanduser('~')}")
     print(f"Transformers cache: {os.getenv('TRANSFORMERS_CACHE', '')}")
     print("Transformers cache files:")
