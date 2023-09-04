@@ -74,7 +74,7 @@ def handler(event, context):
     print(f"User home: {os.path.expanduser('~')}")
     print(f"Transformers cache: {os.getenv('TRANSFORMERS_CACHE', '')}")
     print("Transformers cache files:")
-    for dir in os.listdir("/root/.cache/huggingface/hub"):
+    for dir in os.listdir(os.getenv('TRANSFORMERS_CACHE', '')):
         print(dir)
 
     is_request = "requestContext" in event

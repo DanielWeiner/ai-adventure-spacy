@@ -4,4 +4,6 @@ set -euo pipefail
 OWN_FILENAME="$(basename $0)"
 LAMBDA_EXTENSION_NAME="$OWN_FILENAME"
 
+cp -rf /var/task/.transformers-cache/* $TRANSFORMERS_CACHE
+
 exec "/opt/${LAMBDA_EXTENSION_NAME}/extension.py"

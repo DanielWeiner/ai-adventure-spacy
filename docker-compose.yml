@@ -9,3 +9,5 @@ services:
       - ./lambda_function.py:/var/task/lambda_function.py
     ports:
       - $SPACY_SERVER_PORT:8080
+    environment:
+      - TRANSFORMERS_CACHE=/root/.cache/huggingface/hub
