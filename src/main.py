@@ -71,12 +71,6 @@ executor.shutdown(wait=False)
 def handler(event, context):
     assert isinstance(event, dict)
 
-    print(f"User home: {os.path.expanduser('~')}")
-    print(f"Transformers cache: {os.getenv('TRANSFORMERS_CACHE', '')}")
-    print("Transformers cache files:")
-    for dir in os.listdir(os.getenv('TRANSFORMERS_CACHE', '')):
-        print(dir)
-
     is_request = "requestContext" in event
     text = event.get("body", "") if is_request else event.get("text", "")
 
