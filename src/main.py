@@ -34,7 +34,7 @@ def load_coref_nlp():
 def load_amr():
     print("Loading AMR.")
     
-    amrlib.load_stog_model("amrlib/data/model_stog", device="cpu")
+    amrlib.load_stog_model(os.getenv("AMR_STOG_DIR", ""), device="cpu")
     amrlib.setup_spacy_extension()
 
     print("AMR Loaded.")

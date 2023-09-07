@@ -5,15 +5,19 @@ on:
     branches: [ "main" ]
 
 env:
-  AWS_REGION:       us-east-1 
-  ECR_REPOSITORY:   ai-adventure-spacy
-  ECR_CACHE_TAG:    ai-adventure-spacy-cache
-  FUNCTION_NAME:    ai-adventure-spacy
-  FUNCTION_MEMORY:  10240
-  FUNCTION_STORAGE: 512
-  FUNCTION_TIMEOUT: 900
-  VPC_ID:           vpc-0203ecdde352e0bbc
-  EFS_ACCESS_POINT: transformers-cache
+  AWS_REGION:         us-east-1 
+  ECR_REPOSITORY:     ai-adventure-spacy
+  ECR_CACHE_TAG:      ai-adventure-spacy-cache
+  FUNCTION_NAME:      ai-adventure-spacy
+  FUNCTION_MEMORY:    10240
+  FUNCTION_STORAGE:   512
+  FUNCTION_TIMEOUT:   900
+  VPC_ID:             vpc-0203ecdde352e0bbc
+  EFS_ACCESS_POINT:   transformers-cache
+  TRANSFORMERS_CACHE: /mnt/efs0/transformers-cache
+  AMR_ROOT_DIR:       /mnt/efs0/amr
+  MOUNT_POINT:        /mnt/efs0
+  REMOTE_FOLDER:      /efs0
 
 permissions:
   contents: read
@@ -37,6 +41,8 @@ jobs:
     
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
+      with:
+        buildkitd-flags: --allow-insecure-entitlement security.insecure
 
     - name: Login to Amazon ECR
       id: login-ecr
@@ -52,13 +58,23 @@ jobs:
         IMAGE_TAG: ${{ github.sha }}
       run: |
         docker buildx build \
-            --push \
-            --provenance=false \
-            --platform linux/amd64 \
-            -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
-            --cache-from type=gha \
-            --cache-to type=gha,mode=max \
-            -f docker/Dockerfile .
+          --allow security.insecure \
+          --build-arg AMR_ROOT_DIR="${{ env.AMR_ROOT_DIR }}" \
+          --build-arg TRANSFORMERS_CACHE="${{ env.TRANSFORMERS_CACHE }}" \
+          --build-arg SSH_KEY="${{ secrets.SSH_KEY }}" \
+          --build-arg MOUNT_POINT="${{ env.MOUNT_POINT }}" \
+          --build-arg REMOTE_FOLDER="${{ env.REMOTE_FOLDER }}" \
+          --build-arg SSH_HOST="${{ secrets.SSH_HOST }}" \
+          --build-arg SSH_USER="${{ secrets.SSH_USER }}" \
+          --build-arg EFS_HOST="${{ secrets.EFS_HOST }}" \
+          --push \
+          --progress=plain \
+          --provenance=false \
+          --platform linux/amd64 \
+          -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
+          --cache-from type=gha \
+          --cache-to type=gha,mode=max \
+          -f docker/Dockerfile .
 
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
 
@@ -86,10 +102,10 @@ jobs:
             --function-name ${{ env.FUNCTION_NAME }} \
             --memory-size ${{ env.FUNCTION_MEMORY }} \
             --ephemeral-storage Size=${{ env.FUNCTION_STORAGE }} \
-            --environment Variables=\{SPACY_SERVER_ENV=prod,TRANSFORMERS_CACHE=/mnt/efs0/transformers-cache,SPACY_LATEST_VERSION_FILE=/mnt/efs0/latest-version\} \
+            --environment Variables=\{SPACY_SERVER_ENV=prod,SPACY_LATEST_VERSION_FILE=${{ env.MOUNT_POINT }}/latest-version\} \
             --timeout ${{ env.FUNCTION_TIMEOUT }} \
             --vpc SubnetIds=$SUBNETS,SecurityGroupIds=$SECURITY_GROUP \
-            --file-system-configs Arn=$EFS_ACCESS_POINT,LocalMountPath=/mnt/efs0 \
+            --file-system-configs Arn=$EFS_ACCESS_POINT,LocalMountPath=${{ env.MOUNT_POINT }} \
             --no-cli-pager
 
     - name: Wait for config update

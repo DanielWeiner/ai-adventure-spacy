@@ -1,9 +1,7 @@
 version: '3'
 services:
   spacy:
-    build: 
-      context: .
-      dockerfile: docker/Dockerfile
+    image: ai-adventure-spacy
     volumes:
       - ./src:/var/task/src
       - ./lambda_function.py:/var/task/lambda_function.py

@@ -1,32 +1,62 @@
+# syntax=docker/dockerfile:1-labs
 FROM public.ecr.aws/lambda/python:3.11 AS deps
-ENV LAMBDA_TASK_ROOT=/var/task
-ENV AMR_MODEL_NAME=parse_xfm_bart_large-v0_1_0
-ENV AMR_MODEL_FILE=model_${AMR_MODEL_NAME}.tar.gz
-ENV AMR_MODEL_URL=https://github.com/bjascob/amrlib-models/releases/download/${AMR_MODEL_NAME}/${AMR_MODEL_FILE}
+
+ARG AMR_ROOT_DIR
+ARG TRANSFORMERS_CACHE
+ARG SSH_KEY
+ARG MOUNT_POINT
+ARG REMOTE_FOLDER
+ARG SSH_HOST
+ARG SSH_USER
+ARG EFS_HOST
+
+ENV TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE}
+ENV AMR_STOG_DIR="${AMR_ROOT_DIR}/amrlib/data/model_stog"
 
 # download AMR model and install it
-RUN yum install -y tar gzip
-RUN curl -Lo ${AMR_MODEL_FILE} ${AMR_MODEL_URL}
-RUN mkdir -p ${LAMBDA_TASK_ROOT}/amrlib/data/model_stog/
-RUN tar -xzf ${AMR_MODEL_FILE} -C ${LAMBDA_TASK_ROOT}/amrlib/data/model_stog/ --strip-components 1
-RUN rm -f ${AMR_MODEL_FILE}
-RUN yum remove -y tar gzip
+RUN yum install -y tar gzip openssh-clients nfs-utils
+
+COPY mount-efs.sh mount-efs.sh
+COPY download-model.sh download-model.sh
+RUN chmod +x download-model.sh
+RUN chmod +x mount-efs.sh
+
+# run in a subshell to prevent the key from being logged
+RUN bash -c "echo \"\$SSH_KEY\""
+
+RUN --security=insecure bash -c "echo \"\$SSH_KEY\"" > "/tmp/key.pem" && \
+    chmod 400 "/tmp/key.pem" && \
+    ./mount-efs.sh \
+        --private-key-file "/tmp/key.pem" \
+        --ssh-host         "${SSH_HOST}" \
+        --ssh-user         "${SSH_USER}" \
+        --target-host      "${EFS_HOST}" \
+        --mount-point      "${MOUNT_POINT}" \
+        --remote-folder    "${REMOTE_FOLDER}" \
+        --command          "./download-model.sh" && \ 
+    rm -f "/tmp/key.pem"
 
 # download python dependencies
 RUN --mount=type=cache,target=/root/.cache/pip pip install -U pip setuptools wheel
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 RUN --mount=type=cache,target=/root/.cache/pip pip install -U -r requirements.txt
 
-FROM deps
 # preload facebook/bart-large (avoids doing it at runtime and writing to disk)
-RUN python -c "import huggingface_hub; huggingface_hub.snapshot_download('facebook/bart-large', allow_patterns=['*.txt', '*.json'])"
+RUN --security=insecure bash -c "echo \"\$SSH_KEY\"" > "/tmp/key.pem" && \ 
+    chmod 400 "/tmp/key.pem" && \
+    ./mount-efs.sh \
+        --private-key-file "/tmp/key.pem" \
+        --ssh-host         "${SSH_HOST}" \
+        --ssh-user         "${SSH_USER}" \
+        --target-host      "${EFS_HOST}" \
+        --mount-point      "${MOUNT_POINT}" \
+        --remote-folder    "${REMOTE_FOLDER}" \
+        --command          "python -c \"import huggingface_hub; from transformers.utils.hub import move_cache; huggingface_hub.snapshot_download('facebook/bart-large', allow_patterns=['*.txt', '*.json']); move_cache()\"" && \
+    rm -f "/tmp/key.pem"
 
-# update transformers cache (avoids doing it at runtime and writing to disk)
-RUN python -c "from transformers.utils.hub import move_cache; move_cache()"
-RUN mkdir -p /var/task/.transformers-cache
-RUN mv /root/.cache/huggingface/hub/* /var/task/.transformers-cache
-RUN chmod -R 777 /var/task/.transformers-cache
-ENV TRANSFORMERS_OFFLINE=1
+RUN yum remove --skip-broken -y tar openssh-clients nfs-utils
+
+FROM deps
 COPY src/ ${LAMBDA_TASK_ROOT}/src/
 COPY lambda_function.py ${LAMBDA_TASK_ROOT}
 COPY lambda-layer/ /opt/
