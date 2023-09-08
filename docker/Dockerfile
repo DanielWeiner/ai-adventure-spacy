@@ -21,9 +21,6 @@ COPY download-model.sh download-model.sh
 RUN chmod +x download-model.sh
 RUN chmod +x mount-efs.sh
 
-# run in a subshell to prevent the key from being logged
-RUN bash -c "echo \"\$SSH_KEY\""
-
 RUN --security=insecure bash -c "echo \"\$SSH_KEY\"" > "/tmp/key.pem" && \
     chmod 400 "/tmp/key.pem" && \
     ./mount-efs.sh \
@@ -56,7 +53,8 @@ RUN --security=insecure bash -c "echo \"\$SSH_KEY\"" > "/tmp/key.pem" && \
 
 RUN yum remove --skip-broken -y tar openssh-clients nfs-utils
 
-FROM deps
+ENV TRANSFORMERS_OFFLINE=1
+
 COPY src/ ${LAMBDA_TASK_ROOT}/src/
 COPY lambda_function.py ${LAMBDA_TASK_ROOT}
 COPY lambda-layer/ /opt/
