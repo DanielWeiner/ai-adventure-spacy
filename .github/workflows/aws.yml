@@ -35,9 +35,9 @@ jobs:
     - name: Configure AWS credentials
       uses: aws-actions/configure-aws-credentials@v2
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-access-key-id:     ${{ secrets.AWS_ACCESS_KEY_ID }}
         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ${{ env.AWS_REGION }}
+        aws-region:            ${{ env.AWS_REGION }}
     
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v2
@@ -55,18 +55,22 @@ jobs:
       id: build-image
       env:
         ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-        IMAGE_TAG: ${{ github.sha }}
+        IMAGE_TAG:    ${{ github.sha }}
+        SSH_HOST:     ${{ secrets.SSH_HOST }}
+        SSH_USER:     ${{ secrets.SSH_USER }}
+        SSH_KEY:      ${{ secrets.SSH_KEY }}
+        EFS_HOST:     ${{ secrets.EFS_HOST }}
       run: |
         docker buildx build \
           --allow security.insecure \
           --build-arg AMR_ROOT_DIR="${{ env.AMR_ROOT_DIR }}" \
           --build-arg TRANSFORMERS_CACHE="${{ env.TRANSFORMERS_CACHE }}" \
-          --build-arg SSH_KEY="${{ secrets.SSH_KEY }}" \
           --build-arg MOUNT_POINT="${{ env.MOUNT_POINT }}" \
           --build-arg REMOTE_FOLDER="${{ env.REMOTE_FOLDER }}" \
-          --build-arg SSH_HOST="${{ secrets.SSH_HOST }}" \
-          --build-arg SSH_USER="${{ secrets.SSH_USER }}" \
-          --build-arg EFS_HOST="${{ secrets.EFS_HOST }}" \
+          --secret id=SSH_KEY \
+          --secret id=SSH_HOST \
+          --secret id=SSH_USER \
+          --secret id=EFS_HOST \
           --push \
           --progress=plain \
           --provenance=false \

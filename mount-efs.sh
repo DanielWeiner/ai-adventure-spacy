@@ -103,7 +103,7 @@ ssh -4 -M -S "$CONTROL_SOCKET" -f -N -L "$LOCAL_PORT:$TARGET_HOST:$TARGET_PORT" 
 
 if ! [ -z "$MOUNT_POINT" ]; then
   mkdir -p "$MOUNT_POINT"
-  mount -t nfs -o vers=4 -o tcp -o port="$LOCAL_PORT" -w "127.0.0.1:$REMOTE_FOLDER" "$MOUNT_POINT"
+  mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2,noresvport,port="$LOCAL_PORT" -w "127.0.0.1:$REMOTE_FOLDER" "$MOUNT_POINT"
 fi
 
 # Run the user-provided command locally

@@ -31,6 +31,12 @@ set-current-builder() {
     fi
 }
 
+cleanup() {
+    if ! [ -z "$CURRENT_BUILDER" ]; then
+        docker buildx rm "$CURRENT_BUILDER"
+    fi
+}
+
 build() {
     if [ -f "./.env" ]; then
         set -a
@@ -40,16 +46,18 @@ build() {
 
     set-current-builder
 
+    trap 'cleanup' INT TERM EXIT
+
     docker buildx build \
         --allow security.insecure \
         --build-arg AMR_ROOT_DIR="$AMR_ROOT_DIR" \
         --build-arg TRANSFORMERS_CACHE="$TRANSFORMERS_CACHE" \
-        --build-arg SSH_KEY="$SSH_KEY" \
         --build-arg MOUNT_POINT="$MOUNT_POINT" \
         --build-arg REMOTE_FOLDER="$REMOTE_FOLDER" \
-        --build-arg SSH_HOST="$SSH_HOST" \
-        --build-arg SSH_USER="$SSH_USER" \
-        --build-arg EFS_HOST="$EFS_HOST" \
+        --secret id=SSH_KEY \
+        --secret id=SSH_HOST \
+        --secret id=SSH_USER \
+        --secret id=EFS_HOST \
         -t ai-adventure-spacy \
         -f docker/Dockerfile \
         "$@" \
