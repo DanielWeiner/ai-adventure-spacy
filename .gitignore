@@ -159,5 +159,4 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-amrlib/data/model_stog/*
-!amrlib/data/model_stog/.gitkeep
+.buildkit-cache/

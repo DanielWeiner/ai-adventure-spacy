@@ -60,6 +60,9 @@ build() {
         --secret id=EFS_HOST \
         -t ai-adventure-spacy \
         -f docker/Dockerfile \
+        --load \
+        --cache-from=type=local,src=./.buildkit-cache \
+        --cache-to=type=local,mode=max,dest=./.buildkit-cache \
         "$@" \
         .
 }

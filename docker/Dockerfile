@@ -1,11 +1,17 @@
 # syntax=docker/dockerfile:1-labs
 
-FROM public.ecr.aws/lambda/python:3.11 AS fast_align
+FROM public.ecr.aws/lambda/python:3.11 AS base
 
-RUN yum -y groupinstall "Development Tools" 
-RUN yum install -y libgomp gperftools-devel git cmake
+RUN yum -y update
+RUN yum -y install libgomp gperftools-libs
 RUN curl -Lo sparsehash-devel.rpm https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/s/sparsehash-devel-1.12-3.el7.x86_64.rpm
 RUN yum -y install sparsehash-devel.rpm
+RUN rm -f sparsehash-devel.rpm
+
+FROM base AS fast-align
+
+RUN yum -y groupinstall "Development Tools" 
+RUN yum -y install git cmake
 
 RUN git clone https://github.com/clab/fast_align fast_align_src
 RUN cd fast_align_src && \
@@ -15,76 +21,55 @@ RUN cd fast_align_src && \
     make
 RUN mkdir fast_align
 RUN mv fast_align_src/build/atools fast_align_src/build/fast_align fast_align_src/build/force_align.py fast_align
-RUN rm -rf fast_align_src
 
-FROM public.ecr.aws/lambda/python:3.11
+FROM base AS base-python
 
-ARG AMR_ROOT_DIR
 ARG TRANSFORMERS_CACHE
-ARG MOUNT_POINT
-ARG REMOTE_FOLDER
+ARG AMR_ROOT_DIR
 
 ENV TRANSFORMERS_CACHE=${TRANSFORMERS_CACHE}
 ENV AMR_STOG_DIR="${AMR_ROOT_DIR}/amrlib/data/model_stog"
 
-# download AMR model and install it
-RUN yum install -y tar gzip openssh-clients nfs-utils libgomp gperftools-devel
-RUN curl -Lo sparsehash-devel.rpm https://dl.fedoraproject.org/pub/epel/7/x86_64/Packages/s/sparsehash-devel-1.12-3.el7.x86_64.rpm
-RUN yum -y install sparsehash-devel.rpm
-RUN rm -f sparsehash-devel.rpm
-
-COPY --from=fast_align /var/task/fast_align /var/task/fast_align
+COPY --from=fast-align /var/task/fast_align /var/task/fast_align
 ENV FABIN_DIR=/var/task/fast_align
-
-COPY mount-efs.sh mount-efs.sh
-COPY download-model.sh download-model.sh
-RUN chmod +x download-model.sh
-RUN chmod +x mount-efs.sh
-
-RUN --security=insecure \
-    --mount=type=secret,id=SSH_HOST \
-    --mount=type=secret,id=SSH_USER \
-    --mount=type=secret,id=SSH_KEY \
-    --mount=type=secret,id=EFS_HOST \
-    cat /run/secrets/SSH_KEY > "/tmp/key.pem" && \
-    chmod 400 "/tmp/key.pem" && \
-    ./mount-efs.sh \
-        --private-key-file "/tmp/key.pem" \
-        --ssh-host         "$(cat /run/secrets/SSH_HOST)" \
-        --ssh-user         "$(cat /run/secrets/SSH_USER)" \
-        --target-host      "$(cat /run/secrets/EFS_HOST)" \
-        --mount-point      "${MOUNT_POINT}" \
-        --remote-folder    "${REMOTE_FOLDER}" \
-        --command          "./download-model.sh" && \ 
-    rm -f "/tmp/key.pem"
 
 # download python dependencies
 RUN --mount=type=cache,target=/root/.cache/pip pip install -U pip setuptools wheel
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 RUN --mount=type=cache,target=/root/.cache/pip pip install -U -r requirements.txt
 
+FROM base-python AS transformers-cache
+
+ARG MOUNT_POINT
+ARG REMOTE_FOLDER
+
+# download AMR model and install it
+RUN yum -y install tar gzip openssh-clients nfs-utils
+
+COPY mount-efs.sh mount-efs.sh
+COPY download-model.sh download-model.sh
+RUN chmod +x download-model.sh
+RUN chmod +x mount-efs.sh
+
 COPY initialize_cache.py initialize_cache.py
 
-# preload facebook/bart-large (avoids doing it at runtime and writing to disk)
 RUN --security=insecure \
     --mount=type=secret,id=SSH_HOST \
     --mount=type=secret,id=SSH_USER \
     --mount=type=secret,id=SSH_KEY \
     --mount=type=secret,id=EFS_HOST \
-    cat /run/secrets/SSH_KEY > "/tmp/key.pem" && \ 
-    chmod 400 "/tmp/key.pem" && \
     ./mount-efs.sh \
-        --private-key-file "/tmp/key.pem" \
+        --private-key-file "/run/secrets/SSH_KEY" \
         --ssh-host         "$(cat /run/secrets/SSH_HOST)" \
         --ssh-user         "$(cat /run/secrets/SSH_USER)" \
         --target-host      "$(cat /run/secrets/EFS_HOST)" \
         --mount-point      "${MOUNT_POINT}" \
         --remote-folder    "${REMOTE_FOLDER}" \
-        --command          "python initialize_cache.py" && \
-    rm -f "/tmp/key.pem"
+        --command          "./download-model.sh && python initialize_cache.py"
 
-RUN yum remove --skip-broken -y tar openssh-clients nfs-utils
-RUN rm -f download-model.sh initialize_cache.py mount-efs.sh
+FROM base-python
+
+COPY --from=transformers-cache /var/lang/lib/python3.11/site-packages/amrlib/data/model_aligner_faa/ /var/lang/lib/python3.11/site-packages/amrlib/data/model_aligner_faa/
 
 ENV TRANSFORMERS_OFFLINE=1
 
