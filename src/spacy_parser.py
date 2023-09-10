@@ -52,6 +52,7 @@ def parse(nlp_future: Future[tuple[Language, STOGInferenceBase]], value: str):
             } for epidatum in e ] } for ((source, role, target), e ) in g.epidata.items() ]
         graphs.append({
             "graph":         graph,
+            "top":           g.top,
             "token_indices": sent_token_indices[i],
             "alignments":    alignment_strings[i],
             "triples":       triples,

@@ -86,7 +86,7 @@ def handler(event, context):
                 print(f"Writing {event['new_version']} to {SPACY_LATEST_VERSION_FILE}")
                 file.write(str(event["new_version"]))
 
-        nlp, = nlp_future.result()
+        nlp, _ = nlp_future.result()
         nlp(" ")
         return ""
     
