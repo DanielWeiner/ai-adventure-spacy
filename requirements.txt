@@ -6,3 +6,4 @@ amrlib
 unidecode
 huggingface_hub
 transformers
+penman

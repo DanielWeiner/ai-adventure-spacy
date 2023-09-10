@@ -1,9 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor
 from spacy import load as spacy_load
-import src.spacy_parser as spacy_parser
+import src.spacy_parser
 import os
 import json
 import amrlib
+import importlib
+from amrlib.models.inference_bases import STOGInferenceBase
 
 SPACY_LATEST_VERSION_FILE = os.getenv("SPACY_LATEST_VERSION_FILE", "/dev/null")
 
@@ -31,13 +33,14 @@ def load_coref_nlp():
 
     return nlp_coref
 
-def load_amr():
+def load_amr() -> STOGInferenceBase:
     print("Loading AMR.")
     
-    amrlib.load_stog_model(os.getenv("AMR_STOG_DIR", ""), device="cpu")
-    amrlib.setup_spacy_extension()
+    model : STOGInferenceBase = amrlib.load_stog_model(os.getenv("AMR_STOG_DIR", ""), device="cpu")
 
     print("AMR Loaded.")
+
+    return model
 
 def load_nlp():
     with ThreadPoolExecutor(max_workers=3) as executor:
@@ -47,7 +50,7 @@ def load_nlp():
 
     nlp = base_nlp_future.result()
     nlp_coref = coref_nlp_future.result()
-    amr_future.result()
+    amr_model = amr_future.result()
 
     print("All models loaded.")
 
@@ -55,7 +58,7 @@ def load_nlp():
     nlp.add_pipe("span_resolver", source=nlp_coref)
     nlp.add_pipe("span_cleaner", source=nlp_coref)
 
-    return nlp
+    return nlp, amr_model
 
 def http_response(status: int, content):
     return {
@@ -83,9 +86,12 @@ def handler(event, context):
                 print(f"Writing {event['new_version']} to {SPACY_LATEST_VERSION_FILE}")
                 file.write(str(event["new_version"]))
 
-        nlp = nlp_future.result()
+        nlp, = nlp_future.result()
         nlp(" ")
         return ""
     
-    resp = spacy_parser.parse(nlp_future, text)
+    if os.getenv("SPACY_SERVER_ENV") == "dev":
+        importlib.reload(src.spacy_parser)
+    
+    resp = src.spacy_parser.parse(nlp_future, text)
     return http_response(201, resp) if is_request else resp

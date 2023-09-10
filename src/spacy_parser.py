@@ -1,6 +1,10 @@
 from concurrent.futures import Future
 from src.fixed_dict import FixedDict
 from spacy import Language
+from amrlib.alignments.faa_aligner import FAA_Aligner
+from amrlib.models.inference_bases import STOGInferenceBase
+import penman
+from penman.surface import AlignmentMarker
 
 parse_result_defaults = {
     "tokens":         [],
@@ -14,16 +18,46 @@ class ParseResults(FixedDict):
     def __init__(self, *args, **kwargs) -> None:
         super().__init__(parse_result_defaults.keys(), *args, **kwargs)
 
-def parse(nlp_future: Future[Language], value: str):
+def parse(nlp_future: Future[tuple[Language, STOGInferenceBase]], value: str):
     parse_results = ParseResults(parse_result_defaults)
     
     if not isinstance(value, str) or len(value) == 0:
         return parse_results
     
-    nlp = nlp_future.result()
+    nlp, amr_model = nlp_future.result()
     doc = nlp(value)
 
-    graphs = doc._.to_amr()
+    sents = [ sent.text for sent in doc.sents ]
+    sent_token_indices = [ [ tok.i for tok in sent ] for sent in doc.sents ]
+    sents_tokenized = [ " ".join([ tok.text for tok in sent ]) for sent in doc.sents ]
+    graphs : list[str] = amr_model.parse_sents(sents)
+    aligner = FAA_Aligner()
+    amr_surface_aligns, alignment_strings = aligner.align_sents(sents_tokenized, graphs)
+
+    graphs = []
+    for i, graph in enumerate(amr_surface_aligns):
+        g = penman.decode(graph)
+        triples = [ { "source": source, "role": role, "target": target } for (source, role, target) in g.triples ]
+        epidata = [ { "triple": { "source": source, "role": role, "target": target }, "epidata": [ 
+            { 
+                "mode": epidatum.mode, 
+                "type": type(epidatum).__name__,
+                "repr": epidatum.__repr__(),
+                "annotations": { 
+                    slot: epidatum.__getattribute__(slot) for slot in epidatum.__slots__
+                } if not isinstance(epidatum, AlignmentMarker) else {
+                    "indices": [ index for index in epidatum.indices ],
+                    "prefix": epidatum.prefix
+                }
+            } for epidatum in e ] } for ((source, role, target), e ) in g.epidata.items() ]
+        graphs.append({
+            "graph":         graph,
+            "token_indices": sent_token_indices[i],
+            "alignments":    alignment_strings[i],
+            "triples":       triples,
+            "epidata":       epidata,
+            "metadata":      g.metadata
+        })
     
     tokens = [{
         "index":            token.i,
