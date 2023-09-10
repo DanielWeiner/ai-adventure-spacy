@@ -63,6 +63,7 @@ build() {
         --load \
         --cache-from=type=local,src=./.buildkit-cache \
         --cache-to=type=local,mode=max,dest=./.buildkit-cache \
+        --target dev \
         "$@" \
         .
 }

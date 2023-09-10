@@ -67,7 +67,7 @@ RUN --security=insecure \
         --remote-folder    "${REMOTE_FOLDER}" \
         --command          "./download-model.sh && python initialize_cache.py"
 
-FROM base-python
+FROM base-python AS main
 
 COPY --from=transformers-cache /var/lang/lib/python3.11/site-packages/amrlib/data/model_aligner_faa/ /var/lang/lib/python3.11/site-packages/amrlib/data/model_aligner_faa/
 
@@ -79,3 +79,9 @@ COPY lambda-layer/ /opt/
 RUN chmod +x /opt/extensions/self-invoke-on-shutdown
 RUN chmod +x /opt/self-invoke-on-shutdown/extension.py
 CMD [ "lambda_function.handler" ]
+
+FROM main AS dev
+ARG AMR_ROOT_DIR
+ARG TRANSFORMERS_CACHE
+COPY --from=transformers-cache ${TRANSFORMERS_CACHE} ${TRANSFORMERS_CACHE}
+COPY --from=transformers-cache "${AMR_ROOT_DIR}/amrlib/data/model_stog" "${AMR_ROOT_DIR}/amrlib/data/model_stog"

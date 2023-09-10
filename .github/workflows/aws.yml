@@ -78,6 +78,7 @@ jobs:
           -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG \
           --cache-from type=gha \
           --cache-to type=gha,mode=max \
+          --target main \
           -f docker/Dockerfile .
 
         echo "image=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_OUTPUT
